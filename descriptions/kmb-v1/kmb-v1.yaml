@@ -1,0 +1,228 @@
+openapi: "3.0.3"
+info:
+  title: "Real-time Arrival Data of KMB and LWB"
+  version: "1.04"
+  termsOfService: https://data.gov.hk/en/terms-and-conditions
+  contact:
+    name: Transport Department
+    email: tdenq@td.gov.hk
+externalDocs:
+  description: "Visit DATA.GOV.HK"
+  url: https://data.gov.hk/en-data/dataset/hk-td-tis_21-etakmb
+servers:
+- url: "https://data.etabus.gov.hk/v1/transport/kmb"
+paths:
+  /route:
+    get:
+      summary: Return all bus routes of KMB.
+      responses:
+        200:
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - properties:
+                      type:
+                        enum: ["RouteList"]
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Route"
+        422:
+          $ref: "#/components/responses/Error"
+        500:
+          $ref: "#/components/responses/Error_500"
+  /route/{route_id}/{direction}/{service_type}:
+    parameters:
+    - $ref: "#/components/parameters/RouteId"
+    - in: path
+      name: direction
+      required: true
+      schema:
+        type: string
+        enum:
+        - "inbound"
+        - "outbound"
+    - in: path
+      name: service_type
+      required: true
+      schema:
+        type: string
+    get:
+      summary: Returns the respective route information.
+      responses:
+        200:
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                description: >-
+                  `data` could be empty
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - properties:
+                      type:
+                        enum: ["Route"]
+                      data:
+                        $ref: "#/components/schemas/Route"
+        422:
+          $ref: "#/components/responses/Error"
+        500:
+          $ref: "#/components/responses/Error_500"
+  /stop:
+    get:
+      summary: Returns all bus stop information at once.
+      responses:
+        200:
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - properties:
+                      type:
+                        enum: ["StopList"]
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Stop"
+        422:
+          $ref: "#/components/responses/Error"
+        500:
+          $ref: "#/components/responses/Error_500"
+  /stop/{stop_id}:
+    parameters:
+    - $ref: "#/components/parameters/StopId"
+    get:
+      summary: Returns the information of a bus stop.
+      responses:
+        200:
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - properties:
+                      type:
+                        enum: ["Stop"]
+                      data:
+                        $ref: "#/components/schemas/Stop"
+        422:
+          $ref: "#/components/responses/Error"
+        500:
+          $ref: "#/components/responses/Error_500"
+components:
+  schemas:
+    Route:
+      externalDocs:
+        description: More information
+        url: https://data.etabus.gov.hk/datagovhk/kmb_eta_data_dictionary.pdf
+      type: object
+      properties:
+        co:
+          description: The bus company. 
+          type: string
+          enum: ["KMB"]
+        route:
+          description: The bus route number.
+          allOf:
+          - $ref: "#/components/schemas/RouteId"
+        bound:
+          description: The direction of the bus route.
+          type: string
+          enum:
+            - I
+            - O
+          example: "O"
+        service_type:
+          description: The service type of the bus route.
+          type: string
+          example: "1"
+    RouteId:
+      type: string
+      pattern: '^[A-Z]{0,2}[1-9]\d{0,2}[A-Z]?$'
+      example: "74B"
+    Stop:
+      type: object
+      properties:
+        stop:
+          description: The ID of a bus stop.
+          allOf:
+          - $ref: "#/components/schemas/StopId"
+        name_tc:
+          description: The name of a bus stop, in Traditional Chinese.
+          type: string
+          example: "中秀茂坪"
+        name_en:
+          description: The name of a bus stop, in English.
+          type: string
+          example: "SAU MAU PING (CENTRAL)"
+        name_sc:
+          description: The name of a bus stop, in Simplified Chinese.
+          type: string
+          example: "中秀茂坪"
+        lat:
+          description: Latitude of a bus stop location.
+          type: string
+          example: "22.318856"
+        long:
+          description: Longitude of a bus stop location.
+          type: string
+          example: "114.231353"
+    StopId:
+      type: string
+      pattern: ^[0-9A-Z]{16}$
+      example: "A3ADFCDF8487ADB9"
+    SuccessResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        version:
+          type: string
+          enum: ["1.0"]
+        generated_timestamp:
+          description: >-
+            The timestamp of the initial generated time of the response before
+            it is cached.
+          type: string
+          format: date-time
+          example: "2021-01-21T13:20:20+08:00"
+        data: {}
+  parameters:
+    RouteId:
+      name: route_id
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/RouteId"
+    StopId:
+      name: stop_id
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/StopId"
+  responses:
+    Error:
+      description: >-
+        In case of an API execution error, a corresponding HTTP response code
+        will be returned along with the same response code and an error message
+        in the JSON body.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+          example:
+            code: "422"
+            message: "Invalid/Missing parameter(s)"
+    Error_500:
+      description: Internal Server Error
