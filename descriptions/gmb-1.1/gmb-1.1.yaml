@@ -1,0 +1,164 @@
+openapi: "3.0.3"
+info:
+  title: "Real-time Arrival Data of Green Minibuses"
+  version: "1.1"
+  termsOfService: https://data.gov.hk/en/terms-and-conditions
+  contact:
+    name: Transport Department
+    email: tdenq@td.gov.hk
+externalDocs:
+  description: "Visit DATA.GOV.HK"
+  url: https://data.gov.hk/en-data/dataset/hk-td-tis_21-etakmb
+servers:
+- url: " https://data.etagmb.gov.hk/"
+paths:
+  /route:
+    get:
+      responses:
+        200:
+          description: The request was successfully performed.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - properties:
+                      type:
+                        enum: ["Routes-All"]
+                      data:
+                        type: object
+                        properties:
+                          routes:
+                            type: object
+                            allOf:
+                            - properties:
+                                HKI:
+                                  $ref: "#/components/schemas/RouteCodesList"
+                                KLN:
+                                  $ref: "#/components/schemas/RouteCodesList"
+                                NT:
+                                  $ref: "#/components/schemas/RouteCodesList"
+                            - $ref: "#/components/schemas/WithTimestamp"
+  /route/{region_code}:
+    parameters:
+    - $ref: "#/components/parameters/RegionCode"
+    get:
+      responses:
+        200:
+          description: The request was successfully performed.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - properties:
+                      type:
+                        enum: ["Routes-Regional"]
+                      data:
+                        type: object
+                        allOf:
+                        - properties:
+                            routes:
+                              $ref: "#/components/schemas/RouteCodesList"
+                        - $ref: "#/components/schemas/WithTimestamp"
+  /route/{region_code}/{route_code}:
+    parameters:
+    - $ref: "#/components/parameters/RegionCode"
+    - $ref: "#/components/parameters/RouteCode"
+    get:
+      responses:
+        200:
+          description: The request was successfully performed.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - properties:
+                      type:
+                        enum: ["Route"]
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Route"
+components:
+  schemas:
+    RegionCode:
+      type: string
+      enum:
+      - "HKI"
+      - "KLN"
+      - "NT"
+    RouteCode:
+      type: string
+      pattern: '^[A-Z]?[1-9]\d{0,2}[A-Z]?$'
+    RouteCodesList:
+      type: array
+      items:
+        $ref: "#/components/schemas/RouteCode"
+    Route:
+      type: object
+      allOf:
+      - properties:
+          region:
+            $ref: "#/components/schemas/RegionCode"
+          route_code:
+            $ref: "#/components/schemas/RouteCode"
+          route_id:
+            type: integer
+      - $ref: "#/components/schemas/WithTimestamp"
+    SuccessResponse:
+      type: object
+      properties:
+        type:
+          description: The entity name which is specified underdifferent payload.
+          type: string
+        version:
+          type: string
+          enum: ["1.0"]
+        generated_timestamp:
+          description: The time when the response was generated.
+          type: string
+          format: date-time
+          example: "2020-10-06T11:22:54.072+08:00"
+        data:
+          description: The requested data.
+    WithTimestamp:
+      type: object
+      properties:
+        data_timestamp:
+          type: string
+          format: date-time
+  parameters:
+    RegionCode:
+      name: region_code
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/RegionCode"
+    RouteCode:
+      name: route_code
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/RouteCode"
+  responses:
+    Error:
+      description: >-
+        In case of an API execution error, a corresponding HTTP response code
+        will be returned along with the same response code and an error message
+        in the JSON body.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+          example:
+            code: "422"
+            message: "Invalid/Missing parameter(s)"
+    Error_500:
+      description: Internal Server Error
